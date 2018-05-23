@@ -15,19 +15,19 @@
             android:layout_height="wrap_content"
             android:background="@color/blue_300"
             android:gravity="center"
-            android:padding="12dp"
+            android:padding="20dp"
             android:textColor="@color/white"
-            android:textSize="14sp" />
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/delete_view"
-            android:layout_width="70dp"
+            android:layout_width="90dp"
             android:layout_height="wrap_content"
             android:background="@color/red_500"
             android:gravity="center"
-            android:padding="12dp"
+            android:padding="20dp"
             android:text="删除"
             android:textColor="@color/white"
-            android:textSize="14sp" />
+            android:textSize="16sp" />
     </com.gcit.hy.widget.SweepView>
 </LinearLayout>

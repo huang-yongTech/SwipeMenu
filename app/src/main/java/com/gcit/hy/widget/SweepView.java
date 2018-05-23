@@ -35,7 +35,7 @@ public class SweepView extends ViewGroup {
     public SweepView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
-        mDragHelper = ViewDragHelper.create(this, new CallBack());
+        mDragHelper = ViewDragHelper.create(this, 1.0f, new CallBack());
     }
 
     /**
