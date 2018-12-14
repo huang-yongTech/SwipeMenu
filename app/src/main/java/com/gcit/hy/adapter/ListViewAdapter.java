@@ -8,7 +8,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.gcit.hy.R;
-import com.gcit.hy.widget.SweepView;
+import com.hy.slidedraglayout.SlideDragLayout;
 
 import java.util.List;
 
@@ -54,7 +54,7 @@ public class ListViewAdapter extends BaseAdapter {
     }
 
     class ViewHolder {
-        SweepView sweepView;
+        SlideDragLayout sweepView;
         TextView contentView;
         TextView deleteView;
     }

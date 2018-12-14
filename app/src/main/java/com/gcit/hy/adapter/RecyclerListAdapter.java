@@ -7,9 +7,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.gcit.hy.R;
-import com.gcit.hy.widget.SweepView;
+import com.hy.slidedraglayout.SlideDragLayout;
 
 import java.util.List;
 
@@ -31,26 +32,26 @@ public class RecyclerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        MyViewHolder viewHolder = (MyViewHolder) holder;
+        final MyViewHolder viewHolder = (MyViewHolder) holder;
         viewHolder.contentView.setText(list.get(position));
 
         viewHolder.contentView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                Toast.makeText(context, "内容点击，位置为：" + viewHolder.getAdapterPosition(), Toast.LENGTH_SHORT).show();
             }
         });
 
         viewHolder.deleteView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                Toast.makeText(context, "删除按钮点击，位置为：" + viewHolder.getAdapterPosition(), Toast.LENGTH_SHORT).show();
             }
         });
 
-        viewHolder.sweepView.setOnSweepListener(new SweepView.OnSweepListener() {
+        viewHolder.sweepView.setOnSlideDragListener(new SlideDragLayout.OnSlideDragListener() {
             @Override
-            public void onSweepChanged(SweepView view, boolean isOpened) {
+            public void onSlideStateChanged(SlideDragLayout view, boolean isOpened) {
 
             }
         });
@@ -62,7 +63,7 @@ public class RecyclerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     class MyViewHolder extends RecyclerView.ViewHolder {
-        SweepView sweepView;
+        SlideDragLayout sweepView;
         TextView contentView;
         TextView deleteView;
 

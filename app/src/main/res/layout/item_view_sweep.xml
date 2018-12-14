@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <com.gcit.hy.widget.SweepView
+    <com.hy.slidedraglayout.SlideDragLayout
         android:id="@+id/sweep_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -29,5 +29,5 @@
             android:text="删除"
             android:textColor="@color/white"
             android:textSize="16sp" />
-    </com.gcit.hy.widget.SweepView>
+    </com.hy.slidedraglayout.SlideDragLayout>
 </LinearLayout>
