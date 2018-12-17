@@ -10,7 +10,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gcit.hy.R;
-import com.hy.slidedraglayout.SlideDragLayout;
+import com.hy.slideitemlayout.SlideItemLayout;
 
 import java.util.List;
 
@@ -48,13 +48,6 @@ public class RecyclerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 Toast.makeText(context, "删除按钮点击，位置为：" + viewHolder.getAdapterPosition(), Toast.LENGTH_SHORT).show();
             }
         });
-
-        viewHolder.sweepView.setOnSlideDragListener(new SlideDragLayout.OnSlideDragListener() {
-            @Override
-            public void onSlideStateChanged(SlideDragLayout view, boolean isOpened) {
-
-            }
-        });
     }
 
     @Override
@@ -63,7 +56,7 @@ public class RecyclerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     class MyViewHolder extends RecyclerView.ViewHolder {
-        SlideDragLayout sweepView;
+        SlideItemLayout sweepView;
         TextView contentView;
         TextView deleteView;
 
