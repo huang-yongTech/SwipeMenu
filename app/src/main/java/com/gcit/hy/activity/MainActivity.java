@@ -43,30 +43,4 @@ public class MainActivity extends AppCompatActivity {
         RecyclerListAdapter adapter = new RecyclerListAdapter(list, this);
         recyclerView.setAdapter(adapter);
     }
-
-//    private void init() {
-//        ListView listView = findViewById(R.id.main_recycler_view);
-//
-//        List<String> list = new ArrayList<>();
-//        for (int i = 0; i < 20; i++) {
-//            list.add("测试文本-- " + i);
-//        }
-//
-//        ListViewAdapter adapter = new ListViewAdapter(this, list);
-//        listView.setAdapter(adapter);
-//
-//        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//            @Override
-//            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-//                switch (view.getId()) {
-//                    case R.id.content_view:
-//                        Toast.makeText(MainActivity.this, "内容点击", Toast.LENGTH_SHORT).show();
-//                        break;
-//                    case R.id.delete_view:
-//                        Toast.makeText(MainActivity.this, "删除按钮点击", Toast.LENGTH_SHORT).show();
-//                        break;
-//                }
-//            }
-//        });
-//    }
 }

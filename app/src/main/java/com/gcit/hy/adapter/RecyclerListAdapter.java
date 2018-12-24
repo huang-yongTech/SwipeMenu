@@ -10,6 +10,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gcit.hy.R;
+import com.hy.slideitemlayout.SlideItemLayout;
 
 import java.util.List;
 
@@ -41,10 +42,26 @@ public class RecyclerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             }
         });
 
+        viewHolder.contentView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Toast.makeText(context, "内容长按，位置为：" + viewHolder.getAdapterPosition(), Toast.LENGTH_SHORT).show();
+                return true;
+            }
+        });
+
         viewHolder.deleteView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Toast.makeText(context, "删除按钮点击，位置为：" + viewHolder.getAdapterPosition(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        viewHolder.deleteView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Toast.makeText(context, "删除按钮长按，位置为：" + viewHolder.getAdapterPosition(), Toast.LENGTH_SHORT).show();
+                return true;
             }
         });
     }

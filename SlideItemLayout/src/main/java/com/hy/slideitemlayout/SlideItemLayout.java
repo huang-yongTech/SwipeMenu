@@ -27,7 +27,7 @@ public class SlideItemLayout extends ViewGroup {
     private int mMaxFlingVelocity;
     //内容view
     private View mContentView;
-
+    //侧滑菜单宽度
     private int mMenuWidth;
 
     //滑动临界值，超过该值展开，没超过关闭
@@ -54,8 +54,9 @@ public class SlideItemLayout extends ViewGroup {
     //仿IOS阻塞式滑动标志位（即：有一个侧滑菜单打开时，点击界面其他地方或者改打开的侧滑菜单的内容部分，该侧滑菜单关闭）
     private boolean mIosInterceptFlag;
 
-    //滑动起始和结束坐标
+    //手指触碰屏幕落点坐标
     private PointF mFirstP;
+    //手指离开屏幕坐标
     private PointF mLastP;
 
     public SlideItemLayout(Context context) {
@@ -154,6 +155,7 @@ public class SlideItemLayout extends ViewGroup {
 
             if (child.getVisibility() != GONE) {
                 MarginLayoutParams params = (MarginLayoutParams) child.getLayoutParams();
+
                 child.layout(left + params.leftMargin,
                         top + params.topMargin,
                         left + params.leftMargin + child.getMeasuredWidth(),
@@ -284,20 +286,20 @@ public class SlideItemLayout extends ViewGroup {
 
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                //仿IOS点击其他区域关闭展开的item，拦截DOWN事件，不让DOWN实现传递到onTouchEvent方法中
+                //仿IOS点击其他区域关闭展开的item，拦截DOWN事件，不让DOWN事件传递到子view中（相应的后续事件也不会传递到子view中）
                 if (mIosInterceptFlag) {
                     return true;
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
-                //滑动时拦截,屏蔽滑动时子view的点击的事件
+                //滑动时拦截,屏蔽滑动时子view的点击事件
                 if (Math.abs(ev.getX() - mFirstP.x) > mScaleTouchSlop) {
                     return true;
                 }
                 break;
             case MotionEvent.ACTION_UP:
                 if (getScrollX() > mScaleTouchSlop) {
-                    //侧滑时，屏蔽子view内容区域的点击事件（即点击内容区域时，关闭菜单），子view菜单区域正常点击
+                    //若侧滑菜单已展开，屏蔽子view内容区域的点击事件（即点击内容区域时，关闭菜单），子view菜单区域正常点击
                     if (ev.getX() < getWidth() - getScrollX()) {
                         if (mIsUnMoved) {
                             smoothClose();
@@ -362,7 +364,7 @@ public class SlideItemLayout extends ViewGroup {
     }
 
     /**
-     * 在view离开屏幕时，手动回收展开菜单的缓存，防止内存泄漏，因为该缓存是静态的，需要手动回收
+     * 在view离开屏幕时，若该view处于展开状态，关闭该view，并回收其缓存，防止内存泄漏，因为该缓存是静态的，需要手动回收
      */
     @Override
     protected void onDetachedFromWindow() {
@@ -386,6 +388,9 @@ public class SlideItemLayout extends ViewGroup {
         mVelocityTracker.addMovement(event);
     }
 
+    /**
+     * 释放VelocityTracker
+     */
     private void releaseVelocityTracker() {
         if (null != mVelocityTracker) {
             mVelocityTracker.clear();
