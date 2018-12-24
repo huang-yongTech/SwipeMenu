@@ -1,6 +1,7 @@
 package com.hy.slideitemlayout;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -12,7 +13,7 @@ import android.widget.Scroller;
 
 /**
  * Created by huangyong on 2018/5/23
- * 自定义侧滑删除ViewGroup
+ * 自定义列表item侧滑菜单ViewGroup
  */
 public class SlideItemLayout extends ViewGroup {
     public static final String TAG = "SlideItemLayout";
@@ -26,34 +27,32 @@ public class SlideItemLayout extends ViewGroup {
     private int mMaxFlingVelocity;
     //内容view
     private View mContentView;
-    //菜单view
-    private View mMenuView;
 
-    private int mContentWidth;
     private int mMenuWidth;
-
-    //多点触摸时，只计算第一根手指的滑动速度
-    private int mPointerId;
-
-    //多点触摸时，只允许一个item滑动（每次在DOWN里面判断，结束后清空）
-    private static boolean mIsTouching;
 
     //滑动临界值，超过该值展开，没超过关闭
     private int mSlideLimit;
 
-    //缓存打开的菜单（设置为static防止外层列表滑动时该变量被回收）
+    //多点触控时，保存第一个触点
+    private int mPointerId;
+    //多点触摸时，只允许一个item滑动（每次在DOWN里面判断，结束后即UP时清空）
+    private static boolean mIsTouching;
+
+    //缓存打开的菜单（设置为static表示该变量为列表中的item所共享）
     private static SlideItemLayout mViewCache;
 
     //标志位，判断是处于滑动状态还是点击状态
     //说明：在dispatch方法中，每次DOWN时设置为true；MOVE时判断，如果是滑动动作则设置为false；
-    //最后在intercept方法里，UP是判断该变量，若仍未true，则说明是点击事件，若有菜单展开关闭菜单，若没有菜单展开，则处理点击事件
-    private boolean mIsUnMoved;
+    //最后在intercept方法里，UP时判断该变量，若仍为true，则说明是点击事件，若有菜单展开关闭菜单，若没有菜单展开，则处理点击事件
+    private boolean mIsUnMoved = true;
 
-    //记录SweepView的打开关闭状态
-    private boolean mIsOpened;
+    //判断item是否处于滑动状态，若处于滑动状态，则屏蔽一切点击事件
+    private boolean mIsItemSlided;
 
-    //仿IOS阻塞式滑动（即：有一个侧滑菜单打开时，点击界面其他地方或者改打开的侧滑菜单的内容部分，该侧滑菜单关闭）
-    private boolean mIsIosIntercept;
+    //是否仿IOS阻塞式滑动，默认为是
+    private boolean mIsIos;
+    //仿IOS阻塞式滑动标志位（即：有一个侧滑菜单打开时，点击界面其他地方或者改打开的侧滑菜单的内容部分，该侧滑菜单关闭）
+    private boolean mIosInterceptFlag;
 
     //滑动起始和结束坐标
     private PointF mFirstP;
@@ -69,6 +68,14 @@ public class SlideItemLayout extends ViewGroup {
 
     public SlideItemLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        init(context, attrs, defStyleAttr);
+    }
+
+    private void init(Context context, AttributeSet attrs, int defStyleAttr) {
+        TypedArray array = context.obtainStyledAttributes(attrs, R.styleable.SlideItemLayout, defStyleAttr, 0);
+        //初始化是否仿IOS阻塞式滑动，默认为true
+        mIsIos = array.getBoolean(R.styleable.SlideItemLayout_isIos, true);
+        array.recycle();
 
         mScroller = new Scroller(context);
         mScaleTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
@@ -78,49 +85,87 @@ public class SlideItemLayout extends ViewGroup {
         mLastP = new PointF();
     }
 
-    @Override
-    protected void onFinishInflate() {
-        super.onFinishInflate();
+    public boolean isIsIos() {
+        return mIsIos;
+    }
 
-        mContentView = getChildAt(0);
-        mMenuView = getChildAt(1);
-
-        mContentWidth = mContentView.getMeasuredWidth();
-        LayoutParams deleteParams = mMenuView.getLayoutParams();
-        mMenuWidth = deleteParams.width;
-
-        mSlideLimit = mMenuWidth / 2;
+    public void setIsIos(boolean isIos) {
+        this.mIsIos = isIos;
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        mContentView.measure(widthMeasureSpec, heightMeasureSpec);
-        //delete按钮由于自己定义了宽度，需要自己重新获取宽度测量
-        int deleteWidthMeasureSpec = MeasureSpec.makeMeasureSpec(mMenuWidth, MeasureSpec.EXACTLY);
-        mMenuView.measure(deleteWidthMeasureSpec, heightMeasureSpec);
+        //设置自己可以点击，从而获取触摸事件
+        setClickable(true);
 
-//        int widthMode = MeasureSpec.getMode(widthMeasureSpec);
-//        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
-//        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-//        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
-//
-//        if (widthMode == MeasureSpec.AT_MOST && heightMode == MeasureSpec.AT_MOST) {
-//            setMeasuredDimension(mContentView.getMeasuredWidth() + mMenuWidth, mContentView.getMeasuredHeight());
-//        } else if (widthMeasureSpec == MeasureSpec.AT_MOST) {
-//            setMeasuredDimension(mContentView.getMeasuredWidth() + mMenuWidth, heightSize);
-//        } else if (heightMeasureSpec == MeasureSpec.AT_MOST) {
-//            setMeasuredDimension(widthSize, mContentView.getMeasuredHeight());
-//        }
-        setMeasuredDimension(widthMeasureSpec, mContentView.getMeasuredHeight());
+        //由于RecyclerView等列表存在item复用，因此每次都需要将宽高等数据重新初始化，侧滑菜单的宽高也是如此
+        int contentWidth = 0;
+        mMenuWidth = 0;
+        int height = 0;
+
+        int paddingStart = getPaddingStart();
+        int paddingEnd = getPaddingEnd();
+        int paddingTop = getPaddingTop();
+        int paddingBottom = getPaddingBottom();
+
+        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+
+        int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View childView = getChildAt(i);
+
+            if (childView.getVisibility() != GONE) {
+                measureChildWithMargins(childView, widthMeasureSpec, 0, heightMeasureSpec, 0);
+                MarginLayoutParams params = (MarginLayoutParams) childView.getLayoutParams();
+
+                if (heightMode == MeasureSpec.EXACTLY) {
+                    //父View的高度测量模式为精确值（MATCH_PARENT或具体数值）时，设置其高度为测量所得的高度
+                    height = Math.max(height, heightSize);
+                } else {
+                    //父view高度测量模式为WRAP_CONTENT情况时，设置其高度为子view的最大高度
+                    height = Math.max(height, paddingTop + paddingBottom + params.topMargin + params.bottomMargin + childView.getMeasuredHeight());
+                }
+
+                if (i > 0) {
+                    mMenuWidth += params.leftMargin + params.rightMargin + childView.getMeasuredWidth();
+                    //设置菜单滑出距离为第一个子菜单宽度的一半
+                    mSlideLimit = getChildAt(1).getMeasuredWidth() / 2;
+                } else {
+                    mContentView = childView;
+                    contentWidth = params.leftMargin + params.rightMargin + childView.getMeasuredWidth();
+                }
+            }
+        }
+
+        setMeasuredDimension(contentWidth + paddingStart + paddingEnd, height);
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        mContentView.layout(0, 0, mContentView.getMeasuredWidth(), mContentView.getMeasuredHeight());
-        mMenuView.layout(mContentView.getMeasuredWidth(), 0,
-                mContentView.getMeasuredWidth() + mMenuWidth, mMenuView.getMeasuredHeight());
+        int left = getPaddingStart();
+        int top = getPaddingTop();
+
+        int childCount = getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View child = getChildAt(i);
+
+            if (child.getVisibility() != GONE) {
+                MarginLayoutParams params = (MarginLayoutParams) child.getLayoutParams();
+                child.layout(left + params.leftMargin,
+                        top + params.topMargin,
+                        left + params.leftMargin + child.getMeasuredWidth(),
+                        top + params.topMargin + child.getMeasuredHeight());
+                left += params.rightMargin + child.getMeasuredWidth();
+            }
+        }
+    }
+
+    @Override
+    public LayoutParams generateLayoutParams(AttributeSet attrs) {
+        return new MarginLayoutParams(getContext(), attrs);
     }
 
     @Override
@@ -130,9 +175,12 @@ public class SlideItemLayout extends ViewGroup {
 
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                mIsIosIntercept = false;
-                mIsUnMoved = true;
+                mIosInterceptFlag = false;//每次DOWN时，重新初始化仿IOS滑动拦截标志
+                mIsUnMoved = true;//初始为未滑动状态
+                mIsItemSlided = false;//判断手指起始落点，如果距离属于滑动了，则屏蔽一切点击事件
 
+                //如果有别的手指触碰了这个view，则返回false
+                //这样后续的MOVE等事件就不会再来找这个view了
                 if (mIsTouching) {
                     return false;
                 } else {
@@ -147,26 +195,32 @@ public class SlideItemLayout extends ViewGroup {
                     //仿ios，有侧滑菜单弹出时，且不是当前点击的菜单，拦截点击事件并关闭展开的菜单
                     if (mViewCache != this) {
                         mViewCache.smoothClose();
-                        mIsIosIntercept = true;
+
+                        //设置是否为IOS阻塞式滑动
+                        mIosInterceptFlag = mIsIos;
                     }
 
+                    //只要有一个侧滑菜单处于打开状态，就拦截事件，不让父层列表上下滑动
                     getParent().requestDisallowInterceptTouchEvent(true);
                 }
 
+                //多点触控时，只获取第一个触点，用于计算滑动速率
                 mPointerId = ev.getPointerId(0);
                 break;
             case MotionEvent.ACTION_MOVE:
-                if (mIsIosIntercept) {
+                //仿ios阻塞模式开启并且当前有item处于打开状态，且不是当前触摸的item，就拦截该MOVE事件，MOVE事件也不该出现
+                if (mIosInterceptFlag) {
                     break;
                 }
 
                 float deltaX = mLastP.x - ev.getX();
                 float deltaY = mLastP.y - ev.getY();
 
-                //如果水平滑动距离大于竖直滑动距离且大于最小滑动距离，拦截触摸事件
-                if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > mScaleTouchSlop) {
+                //在水平滑动过程中阻止父列表在竖直方向上的滑动
+                if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > mScaleTouchSlop
+                        || Math.abs(getScrollX()) > mScaleTouchSlop) {
                     getParent().requestDisallowInterceptTouchEvent(true);
-
+                    //设置item状态为滑动状态
                     mIsUnMoved = false;
                 }
 
@@ -183,9 +237,14 @@ public class SlideItemLayout extends ViewGroup {
                 mLastP.set(ev.getX(), ev.getY());
                 break;
             case MotionEvent.ACTION_UP:
+                //这里加入cancel事件是防止出现手指滑动到屏幕外面去的情况
             case MotionEvent.ACTION_CANCEL:
+                if (Math.abs(ev.getX() - mFirstP.x) > mScaleTouchSlop) {
+                    mIsItemSlided = true;
+                }
+
                 //判断是否是IOS阻塞式滑动，如果是并且已有侧滑菜单打开，则拦截滑动事件，即不执行滑动
-                if (!mIsIosIntercept) {
+                if (!mIosInterceptFlag) {
                     //设置每秒的最大滑动速率
                     mVelocityTracker.computeCurrentVelocity(1000, mMaxFlingVelocity);
                     //获取当前滑动速率
@@ -210,8 +269,10 @@ public class SlideItemLayout extends ViewGroup {
                 }
 
                 releaseVelocityTracker();
-                //没有人再触摸我了
+                //没有人再触摸我了（现在的问题是没有走到这一步）
                 mIsTouching = false;
+                break;
+            default:
                 break;
         }
 
@@ -223,13 +284,13 @@ public class SlideItemLayout extends ViewGroup {
 
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                if (mIsIosIntercept && mIsOpened) {
-                    smoothClose();
+                //仿IOS点击其他区域关闭展开的item，拦截DOWN事件，不让DOWN实现传递到onTouchEvent方法中
+                if (mIosInterceptFlag) {
                     return true;
                 }
                 break;
-            //屏蔽滑动时的事件
             case MotionEvent.ACTION_MOVE:
+                //滑动时拦截,屏蔽滑动时子view的点击的事件
                 if (Math.abs(ev.getX() - mFirstP.x) > mScaleTouchSlop) {
                     return true;
                 }
@@ -244,11 +305,12 @@ public class SlideItemLayout extends ViewGroup {
                         return true;
                     }
                 }
-                break;
-        }
 
-        if (mIsIosIntercept) {
-            return true;
+                //如果item处于滑动状态，屏蔽一切点击事件（好像并没有什么用）
+                if (mIsItemSlided) {
+                    return true;
+                }
+                break;
         }
 
         return super.onInterceptTouchEvent(ev);
@@ -287,9 +349,34 @@ public class SlideItemLayout extends ViewGroup {
     }
 
     /**
-     * 获取滑动速率追踪器
-     *
-     * @param event 事件
+     * 采用scroller处理item滑动时，需要重写该方法
+     */
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        //若还没有完成移动
+        if (mScroller.computeScrollOffset()) {
+            scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
+            postInvalidate();
+        }
+    }
+
+    /**
+     * 在view离开屏幕时，手动回收展开菜单的缓存，防止内存泄漏，因为该缓存是静态的，需要手动回收
+     */
+    @Override
+    protected void onDetachedFromWindow() {
+        if (this == mViewCache) {
+            mViewCache.smoothClose();
+            mViewCache = null;
+        }
+        super.onDetachedFromWindow();
+    }
+
+    /**
+     * @param event 向VelocityTracker添加Event
+     * @see VelocityTracker#obtain()
+     * @see VelocityTracker#addMovement(MotionEvent)
      */
     private void acquireVelocityTracker(MotionEvent event) {
         if (mVelocityTracker == null) {
@@ -308,29 +395,39 @@ public class SlideItemLayout extends ViewGroup {
     }
 
     /**
-     * 采用scroller处理item滑动时，需要重写该方法
+     * 侧滑菜单展开时，屏蔽长按事件
      */
     @Override
-    public void computeScroll() {
-        super.computeScroll();
-        //若还没有完成移动
-        if (mScroller.computeScrollOffset()) {
-            scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
-            invalidate();
+    public boolean performLongClick() {
+        if (Math.abs(getScrollX()) > mScaleTouchSlop) {
+            return false;
         }
+        return super.performLongClick();
     }
 
     /**
-     * 手动回收展开菜单的缓存，因为该缓存是静态的，需要手动回收
+     * 当侧滑item有多个菜单时，并且需要点击菜单使得该展开的item关闭时，调用此方法
      */
-    @Override
-    protected void onDetachedFromWindow() {
-        if (mViewCache != null) {
+    public void close() {
+        if (this == mViewCache) {
             mViewCache.smoothClose();
             mViewCache = null;
         }
-        super.onDetachedFromWindow();
     }
+
+//    @Override
+//    protected void onFinishInflate() {
+//        super.onFinishInflate();
+//
+//        mContentView = getChildAt(0);
+//        mMenuView = getChildAt(1);
+//
+//        mContentWidth = mContentView.getMeasuredWidth();
+//        LayoutParams deleteParams = mMenuView.getLayoutParams();
+//        mMenuWidth = deleteParams.width;
+//
+//        mSlideLimit = mMenuWidth / 2;
+//    }
 
 //    /**
 //     * 当子view的位置发生变化时，父view会调用该方法重新绘制，直到子view位置变化完成

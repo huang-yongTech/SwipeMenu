@@ -10,7 +10,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gcit.hy.R;
-import com.hy.slideitemlayout.SlideItemLayout;
 
 import java.util.List;
 
@@ -56,13 +55,11 @@ public class RecyclerListAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     }
 
     class MyViewHolder extends RecyclerView.ViewHolder {
-        SlideItemLayout sweepView;
         TextView contentView;
         TextView deleteView;
 
         MyViewHolder(View itemView) {
             super(itemView);
-            sweepView = itemView.findViewById(R.id.sweep_view);
             contentView = itemView.findViewById(R.id.content_view);
             deleteView = itemView.findViewById(R.id.delete_view);
         }

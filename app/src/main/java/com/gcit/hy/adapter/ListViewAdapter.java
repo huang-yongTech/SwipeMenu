@@ -8,7 +8,6 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.gcit.hy.R;
-import com.hy.slideitemlayout.SlideItemLayout;
 
 import java.util.List;
 
@@ -42,7 +41,6 @@ public class ListViewAdapter extends BaseAdapter {
         if (convertView == null) {
             holder = new ViewHolder();
             convertView = LayoutInflater.from(context).inflate(R.layout.item_view_sweep, parent, false);
-            holder.sweepView = convertView.findViewById(R.id.sweep_view);
             holder.contentView = convertView.findViewById(R.id.content_view);
             holder.deleteView = convertView.findViewById(R.id.delete_view);
             convertView.setTag(holder);
@@ -54,7 +52,6 @@ public class ListViewAdapter extends BaseAdapter {
     }
 
     class ViewHolder {
-        SlideItemLayout sweepView;
         TextView contentView;
         TextView deleteView;
     }
