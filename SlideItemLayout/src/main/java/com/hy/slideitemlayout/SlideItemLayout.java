@@ -134,8 +134,10 @@ public class SlideItemLayout extends ViewGroup {
                 }
 
                 if (i > 0) {
+                    //菜单区域设置
                     mMenuWidth += params.leftMargin + params.rightMargin + childView.getMeasuredWidth();
                 } else {
+                    //内容区域设置
                     mContentView = childView;
                     contentWidth = params.leftMargin + params.rightMargin + childView.getMeasuredWidth();
                 }
@@ -221,6 +223,8 @@ public class SlideItemLayout extends ViewGroup {
                 float deltaX = mLastP.x - ev.getRawX();
                 float deltaY = mLastP.y - ev.getRawY();
 
+                Log.i(TAG, "mScaleTouchSlop: " + mScaleTouchSlop);
+
                 //在水平滑动过程中阻止父列表在竖直方向上的滑动
                 if (/*Math.abs(deltaX) > Math.abs(deltaY) &&*/ Math.abs(deltaX) > mScaleTouchSlop
                         || Math.abs(getScrollX()) > mScaleTouchSlop) {
@@ -290,6 +294,7 @@ public class SlideItemLayout extends ViewGroup {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
+
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 //仿IOS点击其他区域关闭展开的item，拦截DOWN事件，不让DOWN事件传递到子view中（相应的后续事件也不会传递到子view中）
@@ -317,9 +322,9 @@ public class SlideItemLayout extends ViewGroup {
                 }
 
                 //如果item处于滑动状态，屏蔽一切点击事件（好像并没有什么用）
-//                if (mIsItemSlided) {
-//                    return true;
-//                }
+                if (mIsItemSlided) {
+                    return true;
+                }
                 break;
         }
 
