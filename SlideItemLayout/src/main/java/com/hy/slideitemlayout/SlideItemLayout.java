@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.PointF;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -118,6 +119,8 @@ public class SlideItemLayout extends ViewGroup {
         for (int i = 0; i < childCount; i++) {
             View childView = getChildAt(i);
 
+            childView.setClickable(true);
+
             if (childView.getVisibility() != GONE) {
                 measureChildWithMargins(childView, widthMeasureSpec, 0, heightMeasureSpec, 0);
                 MarginLayoutParams params = (MarginLayoutParams) childView.getLayoutParams();
@@ -132,8 +135,6 @@ public class SlideItemLayout extends ViewGroup {
 
                 if (i > 0) {
                     mMenuWidth += params.leftMargin + params.rightMargin + childView.getMeasuredWidth();
-                    //设置菜单滑出距离为第一个子菜单宽度的一半
-                    mSlideLimit = getChildAt(1).getMeasuredWidth() / 2;
                 } else {
                     mContentView = childView;
                     contentWidth = params.leftMargin + params.rightMargin + childView.getMeasuredWidth();
@@ -141,6 +142,8 @@ public class SlideItemLayout extends ViewGroup {
             }
         }
 
+        //设置菜单滑出距离为第一个子菜单宽度的一半
+        mSlideLimit = getChildAt(1).getMeasuredWidth() / 2;
         setMeasuredDimension(contentWidth + paddingStart + paddingEnd, height);
     }
 
@@ -189,8 +192,8 @@ public class SlideItemLayout extends ViewGroup {
                     mIsTouching = true;
                 }
 
-                mFirstP.set(ev.getX(), ev.getY());
-                mLastP.set(ev.getX(), ev.getY());
+                mFirstP.set(ev.getRawX(), ev.getRawY());
+                mLastP.set(ev.getRawX(), ev.getRawY());
 
                 //如果有侧滑菜单展开，拦截触摸事件
                 if (mViewCache != null) {
@@ -215,14 +218,18 @@ public class SlideItemLayout extends ViewGroup {
                     break;
                 }
 
-                float deltaX = mLastP.x - ev.getX();
-                float deltaY = mLastP.y - ev.getY();
+                float deltaX = mLastP.x - ev.getRawX();
+                float deltaY = mLastP.y - ev.getRawY();
 
                 //在水平滑动过程中阻止父列表在竖直方向上的滑动
-                if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > mScaleTouchSlop
+                if (/*Math.abs(deltaX) > Math.abs(deltaY) &&*/ Math.abs(deltaX) > mScaleTouchSlop
                         || Math.abs(getScrollX()) > mScaleTouchSlop) {
                     getParent().requestDisallowInterceptTouchEvent(true);
-                    //设置item状态为滑动状态
+                }
+
+                //这里需要单独设置是否处于滑动状态，不能在上面一起设置，因为在菜单处于打开状态下时，
+                //Math.abs(getScrollX()) > mScaleTouchSlop必然会成立的
+                if (Math.abs(deltaX) > mScaleTouchSlop) {
                     mIsUnMoved = false;
                 }
 
@@ -236,12 +243,12 @@ public class SlideItemLayout extends ViewGroup {
                     scrollTo(mMenuWidth, 0);
                 }
 
-                mLastP.set(ev.getX(), ev.getY());
+                mLastP.set(ev.getRawX(), ev.getRawY());
                 break;
             case MotionEvent.ACTION_UP:
                 //这里加入cancel事件是防止出现手指滑动到屏幕外面去的情况
             case MotionEvent.ACTION_CANCEL:
-                if (Math.abs(ev.getX() - mFirstP.x) > mScaleTouchSlop) {
+                if (Math.abs(ev.getRawX() - mFirstP.x) > mScaleTouchSlop) {
                     mIsItemSlided = true;
                 }
 
@@ -283,7 +290,6 @@ public class SlideItemLayout extends ViewGroup {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 //仿IOS点击其他区域关闭展开的item，拦截DOWN事件，不让DOWN事件传递到子view中（相应的后续事件也不会传递到子view中）
@@ -293,13 +299,15 @@ public class SlideItemLayout extends ViewGroup {
                 break;
             case MotionEvent.ACTION_MOVE:
                 //滑动时拦截,屏蔽滑动时子view的点击事件
-                if (Math.abs(ev.getX() - mFirstP.x) > mScaleTouchSlop) {
+                if (Math.abs(ev.getRawX() - mFirstP.x) > mScaleTouchSlop) {
                     return true;
                 }
                 break;
             case MotionEvent.ACTION_UP:
+                //getScrollX的计算方法是，在滑动过程中，view的左边缘减去view内容的左边缘。
                 if (getScrollX() > mScaleTouchSlop) {
-                    //若侧滑菜单已展开，屏蔽子view内容区域的点击事件（即点击内容区域时，关闭菜单），子view菜单区域正常点击
+                    //若侧滑菜单已展开，并且点击事件位于这个展开的item的内容区域内，拦截此次事件，
+                    //屏蔽子view内容区域的点击事件（即点击内容区域时，关闭菜单），子view菜单区域正常点击
                     if (ev.getX() < getWidth() - getScrollX()) {
                         if (mIsUnMoved) {
                             smoothClose();
@@ -309,9 +317,9 @@ public class SlideItemLayout extends ViewGroup {
                 }
 
                 //如果item处于滑动状态，屏蔽一切点击事件（好像并没有什么用）
-                if (mIsItemSlided) {
-                    return true;
-                }
+//                if (mIsItemSlided) {
+//                    return true;
+//                }
                 break;
         }
 
